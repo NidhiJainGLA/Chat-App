@@ -1,0 +1,176 @@
+<div id="sidebar-container">
+  <!-- Hamburger button -->
+  <button
+    data-drawer-target="default-sidebar"
+    data-drawer-toggle="default-sidebar"
+    aria-controls="default-sidebar"
+    id="hamburger"
+    type="button"
+    class="inline-flex sm:hidden items-center p-2 mt-2 ms-3 text-sm text-gray-700 rounded-lg focus:outline-none focus:ring-0 dark:text-gray-300 dark:bg-gray-800 rounded shadow dark:shadow"
+  >
+    <span class="sr-only">Open sidebar</span>
+    <svg
+      class="w-6 h-6"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M4 6h16M4 12h16m-7 6h7"
+      ></path>
+    </svg>
+  </button>
+
+  <!-- sidebar -->
+  <aside
+    id="default-sidebar"
+    class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-white shadow-md dark:bg-gray-900"
+    aria-label="Sidebar"
+  >
+    <button
+      id="close-sidebar"
+      type="button"
+      class="inline-flex items-center p-2 mt-2 ms-3 text-sm text-gray-700 rounded-lg focus:outline-none focus:ring-0 dark:text-gray-300 dark:bg-gray-800 rounded shadow dark:shadow sm:hidden"
+    >
+      <span class="sr-only">Close sidebar</span>
+      <svg
+        class="w-6 h-6"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        ></path>
+      </svg>
+    </button>
+    <div
+      class="h-full px-4 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+    >
+      <ul class="space-y-2">
+        <li><div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+          <div class="sm:mx-auto sm:w-full sm:max-w-sm"> 
+            <h1
+            class="flex items-center justify-center uppercase p-2 rounded-lg text-xl font-bold group"
+          >
+          <img src="res/chat-line-dark.svg" id="chat-icon" alt="Chat Icon" class=" dark:hidden w-6 h-6 mr-2" />
+          <img src="res/chat-line.svg" id="chat-icon" alt="Chat Icon" class=" hidden dark:block w-6 h-6 mr-2" />
+          <span
+            id="roomHeading"></span>
+        </h1> 
+          
+          <hr class="border-gray-300 dark:border-gray-700" />
+        </li>
+        <li>
+          <p class="flex items-center p-2 rounded-lg group">
+            <img
+              src="res/user.svg"
+              id="user-icon"
+              class="dark:hidden mr-2  w-5 h-5"
+              alt="User Icon" 
+            />
+
+            <!-- Sun icon for dark mode -->
+            <img
+              src="res/user_dark.svg"
+              id="user-icon-dark"
+              class="hidden dark:block mr-2  w-5 h-5"
+              alt="User Icon Dark"
+               
+            />
+
+            Users
+            <span
+              id="userCount"
+              class="flex justify-center items-center h-6 w-6 rounded-full bg-orange-400 text-white text-xs font-bold ml-auto"
+            >
+              0</span
+            >
+          </p>
+        </li>
+      </ul>
+      <ul
+        class="space-y-2 items-center p-2 rounded-lg group ml-8"
+        id="userList"
+      ></ul><div class="flex flex-col justify-center px-6 py-12 lg:px-8">
+      <button id="download-chat" 
+        class="bg-transparent hover:bg-orange-500 text-orange-600 font-semibold hover:text-white py-2   px-4 border border-orange-500 hover:border-transparent rounded" />Download Chat</button></div> 
+      <div
+        class="absolute bottom-0 left-0 w-full bg-gray-200 dark:bg-gray-800 px-4 py-2"
+      >
+      <hr class="border-gray-300 dark:border-gray-700" />
+        <label
+          for="autoScrollCheckbox"
+          class="flex items-center text-sm font-medium text-gray-900 dark:text-gray-200"
+        >
+          <input
+            checked
+            id="autoScrollCheckbox"
+            type="checkbox"
+            name="autoScroll"
+            class="mr-2 text-orange-400 dark:text-orange-400 focus:ring-0 focus:outline-0"
+          />
+          Enable Auto Scroll
+        </label>
+      </div>   
+    </div>
+  </aside>
+</div>
+<script> 
+  document.addEventListener("DOMContentLoaded", () => {
+    const hamburgerButton = document.getElementById("hamburger");
+    const closeButton = document.getElementById("close-sidebar");
+    const sidebar = document.getElementById("default-sidebar");
+
+    hamburgerButton.addEventListener("click", () => {
+      sidebar.classList.remove("-translate-x-full");
+    });
+
+    closeButton.addEventListener("click", () => {
+      sidebar.classList.add("-translate-x-full");
+    });
+  });
+</script>
+
+
+<script>
+  document.getElementById('download-chat').addEventListener('click', function() {
+      var messagesDiv = document.getElementById('messages-container');
+      var messageBubbles = messagesDiv.getElementsByClassName('message-bubble');
+      var chatData = [];
+  
+      for (var i = 0; i < messageBubbles.length; i++) {
+          var username = messageBubbles[i].getElementsByClassName('message-username')[0].innerText;
+          var time = messageBubbles[i].getElementsByClassName('message-time')[0].innerText;
+          var text = messageBubbles[i].getElementsByClassName('message-content')[0].innerText;
+  
+          chatData.push({
+              username: username,
+              time: time,
+              text: text
+          });
+      }
+  
+      // Convert chat data to a JSON string
+      var jsonData = JSON.stringify(chatData);
+  
+      // Create a Blob from the JSON string
+      var blob = new Blob([jsonData], {type: 'application/json'});
+  
+      // Create a link element, use it to download the blob, and then remove it
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url;
+      link.download = 'chat_history.json';
+      link.click();
+      URL.revokeObjectURL(url); // Clean up by revoking the object URL after use
+  });
+  </script>
