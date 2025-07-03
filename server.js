@@ -1,152 +1,123 @@
-var socket = io();
-const { username, room } = Qs.parse(location.search, {
-  ignoreQueryPrefix: true,
+import http from "http";
+import express from "express";
+import { Server } from "socket.io";
+import moment from "moment";
+import { v4 as uuidv4 } from "uuid";
+import {
+  userJoin,
+  userLeave,
+  getRoomUsers,
+  checkUserNameExists,
+} from "./utils/users.js";
+
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+const server = http.createServer(app); // Create HTTP server
+const io = new Server(server); // Create Socket.IO server
+
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/css", express.static(path.join(__dirname, "dist")));
+app.use("/js", express.static(path.join(__dirname, "public/js")));
+
+/* routes */
+app.get("/", (req, res) => res.render("index.ejs"));
+app.get("/chat", (req, res) => res.render("chat.ejs"));
+app.get("*", (req, res) => {
+  res.redirect("/");
 });
-if (!username || !room) {
-  console.log("Redirect user to the home page if the parameters are missing");
-  window.location.href = "/"; // Redirect to the homepage if credentials are missing
-} else {
-  /*************** Check for Duplicate username ***********************/
-  socket.emit("checkUsername", { username });
-  socket.on("usernameCheckResult", (isTaken) => {
-    if (isTaken) {
-      console.log("Redirecting to homepage. Username already taken.");
-      window.location.href = "/"; // Redirect to the homepage if username is already taken
-    }
+
+const typingUsers = new Map();
+const messages = [];
+/*  SOCKET.IO
+  Emit to current user:
+    socket.emit("msg", "Welcome user");
+  Broadcasts to all users except current user
+    socket.broadcast.emit("msg", `${username} has joined the chat`);
+  Broadcasts to all users except current user in a specific room
+     socket.broadcast.to(user.room).emit("system_msg", `${username} joined ${room}`); - Emit to current user
+  Emit to everyone including current user
+    io.emit...
+  Emit to everyone in a room including current user
+    io.to(user.room).emit....
+*/
+io.on("connection", (socket) => {
+  socket.on("checkUsername", ({ username }) => {
+    socket.emit("usernameCheckResult", checkUserNameExists(username));
   });
 
-  console.log("Access granted. Username and room are present.");
-  /*************** Type Detection Start***********************/
-  // Typing event handlers
-  const input = document.getElementById("messageInput");
-  let typing = false;
-  let timeout;
+  socket.on("join_room", ({ username, room }) => {
+    const user = userJoin(socket.id, username, room);
 
-  input.addEventListener("input", () => {
-    if (!typing) {
-      typing = true;
-      socket.emit("typing", { username, room });
-    }
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      typing = false;
-      socket.emit("stop_typing", { username, room });
-    }, 3000);
-  });
+    socket.join(user.room); //create a new room and join
+    console.log("Server: New Connection");
+    console.log(user);
 
-  socket.on("typing", (usersTyping) => {
-    const typingElement = document.getElementById("typing");
-    typingElement.innerText =
-      usersTyping.length > 0 ? `${usersTyping.join(", ")} is typing...` : "";
-  });
+    // another user joins
+    socket.broadcast
+      .to(user.room)
+      .emit("system_msg", `${username} joined the chat`);
 
-  socket.on("stop_typing", (usersTyping) => {
-    const typingElement = document.getElementById("typing");
-    typingElement.innerText =
-      usersTyping.length > 0 ? `${usersTyping.join(", ")} is typing...` : "";
-  });
-  /*************** Type Detection End***********************/
-  console.log({ username, room });
-  document.getElementById("roomHeading").innerText = room;
-
-  socket.emit("join_room", { username, room });
-
-  // debug message from the server
-  socket.on("console_msg", (msg) => {
-    console.log(msg); // app
-  });
-
-  socket.on("system_msg", (msg) => {
-    console.log(msg);
-    appendSystemMessage(msg); // app
-  });
-
-  // messages to be added to chat window
-  socket.on("chat_msg", (msg) => {
-    console.log(msg); // append to front end
-    appendMessage(msg);
-  });
-
-  // handle new message submission
-  const newMsgForm = document.getElementById("newMessageForm");
-  newMsgForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const msg = e.target.elements[0].value;
-
-    // emit to server
-    socket.emit("chat_message", msg);
-    document.getElementById("messageInput").value = "";
-    document.getElementById("messageInput").focus();
-  });
-
-  // add received message to window
-  function appendMessage(msg) {
-    console.log("append msg");
-    console.log({ msg });
-
-    var messages = document.getElementById("messages");
-    var messagesDiv = document.getElementById("messages-container");
-    let bubble = `<div class="message-bubble bg-gray-300 dark:bg-gray-700 dark:text-gray-100 rounded-lg shadow p-3 my-2 mx-4">
-        <div class="message-header flex justify-between items-center mb-2">
-          <span class="message-username italic text-gray-800 dark:text-gray-300">${msg.username}</span>
-          <span class="message-time text-sm text-gray-500 dark:text-gray-400">${msg.time}</span>
-        </div>
-        <div class="message-content text-lg text-gray-600 dark:text-gray-100">${msg.text}</div>
-        `;
-
-    
-    messages.insertAdjacentHTML("beforeend", bubble);
-    const autoScrollEnabled =
-      document.getElementById("autoScrollCheckbox").checked;
-
-    if (autoScrollEnabled) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    document.querySelectorAll(".like-icon").forEach((button) => {
-      button.addEventListener("click", () => {
-        const messageId = button.getAttribute("data-id");
-        socket.emit("like_message", { messageId, username });
-      });
+    // send room info to all users
+    io.to(user.room).emit("room_users", {
+      room: user.room,
+      users: getRoomUsers(room),
     });
-  }
 
-  function appendSystemMessage(msg) {
-    var messages = document.getElementById("messages");
-    var messagesDiv = document.getElementById("messages-container");
-    const systemMsg = `<p class='systemMsg dark:text-zinc-400 text-grey-100 italic text-center my-2 mx-4 text-sm'>${msg}</p>`;
+    console.log("Users:");
+    console.log(getRoomUsers(room));
 
-    messages.insertAdjacentHTML("beforeend", systemMsg);
-    const autoScrollEnabled =
-      document.getElementById("autoScrollCheckbox").checked;
+    // user sends a message
+    socket.on("chat_message", (msg) => {
+      console.log("emit chat message");
+      const message = {
+        id: uuidv4(),
+        username: user.username,
+        room: user.room,
+        text: msg,
+        time: moment().format("h:mm a"),
+      };
+      messages.push(message);
+      console.log({ messages });
+      io.to(user.room).emit("chat_msg", message);
+      //io.to(user.room).emit("chat_msg", formatMessage(user.username, msg));
+    });
 
-    if (autoScrollEnabled) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
+    // Handle typing events
+    socket.on("typing", ({ username, room }) => {
+      if (!typingUsers.has(room)) {
+        typingUsers.set(room, new Set());
+      }
+      typingUsers.get(room).add(username);
+      io.to(room).emit("typing", Array.from(typingUsers.get(room)));
+    });
 
-  /* USER LIST MODAL */
-
-  socket.on("room_users", ({ room, users }) => {
-    console.log(room);
-    console.log(users);
-    updateUserCountAndList(users);
-  });
-
-  
-  // Function to update the user count and user list
-  function updateUserCountAndList(users) {
-    const userCount = users.length;
-    console.log("userCount:" + userCount);
-    document.getElementById("userCount").textContent = userCount;
-
-    const userList = document.getElementById("userList");
-    userList.innerHTML = ""; // Clear existing list
-    users.forEach((user) => {
-      const li = document.createElement("li");
-      li.textContent = user.username;
-
-      if (user.username == username) {
-        li.className = "text-orange-600 dark:text-orange-500";
-        userList.prepend(li);
-      } else {
-        userList.appendChild(li);
+    socket.on("stop_typing", ({ username, room }) => {
+      if (typingUsers.has(room)) {
+        typingUsers.get(room).delete(username);
+        io.to(room).emit("stop_typing", Array.from(typingUsers.get(room)));
       }
     });
-  }
-}
+
+   
+
+    /* disconnect */
+    socket.on("disconnect", () => {
+      const user = userLeave(socket.id); // remove user from users list
+
+      if (user)
+        io.to(user.room).emit("system_msg", `${username} left the chat`);
+    });
+  });
+});
+
+server.listen(port, () => console.log(`Server running on port ${port}`));
