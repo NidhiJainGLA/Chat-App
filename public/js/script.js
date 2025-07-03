@@ -94,21 +94,7 @@ if (!username || !room) {
         <div class="message-content text-lg text-gray-600 dark:text-gray-100">${msg.text}</div>
         `;
 
-    if (msg.likes.includes(username))
-      bubble += `
-        <div id="likeIcon-${msg.id}" data-id="${msg.id}" class="like-icon message-likes">
-          <img src="/res/like-filled.svg"   alt="liked"/> 
-          <span id="likeCount-${msg.id}" class="like-count">${msg.likes.length}</span> 
-        </div>
-        </div>`;
-    else
-      bubble += `
-      <div id="likeIcon-${msg.id}" data-id="${msg.id}" class="like-icon message-likes">
-        <img src="/res/like-outline.svg"  alt="not liked"/> 
-        <span id="likeCount-${msg.id}" class="like-count">${msg.likes.length}</span> 
-      </div>
-      </div>`;
-
+    
     messages.insertAdjacentHTML("beforeend", bubble);
     const autoScrollEnabled =
       document.getElementById("autoScrollCheckbox").checked;
@@ -142,17 +128,7 @@ if (!username || !room) {
     updateUserCountAndList(users);
   });
 
-  socket.on("update_likes", ({ messageId, likes }) => {
-    const likeIcon = document.getElementById(`likeIcon-${messageId}`);
-
-    if (likeIcon) {
-      likeIcon.innerHTML = likes.includes(username)
-        ? `<img src="/res/like-filled.svg"  alt="liked"/> 
-    <span id="likeCount-${messageId}" class="like-count">${likes.length}</span> `
-        : `<img src="/res/like-outline.svg" alt="not liked"/> 
-    <span id="likeCount-${messageId}" class="like-count">${likes.length}</span> `;
-    }
-  });
+  
   // Function to update the user count and user list
   function updateUserCountAndList(users) {
     const userCount = users.length;
