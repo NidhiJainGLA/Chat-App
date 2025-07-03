@@ -18,33 +18,6 @@ if (!username || !room) {
   console.log("Access granted. Username and room are present.");
   /*************** Type Detection Start***********************/
   // Typing event handlers
-  const input = document.getElementById("messageInput");
-  let typing = false;
-  let timeout;
-
-  input.addEventListener("input", () => {
-    if (!typing) {
-      typing = true;
-      socket.emit("typing", { username, room });
-    }
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      typing = false;
-      socket.emit("stop_typing", { username, room });
-    }, 3000);
-  });
-
-  socket.on("typing", (usersTyping) => {
-    const typingElement = document.getElementById("typing");
-    typingElement.innerText =
-      usersTyping.length > 0 ? `${usersTyping.join(", ")} is typing...` : "";
-  });
-
-  socket.on("stop_typing", (usersTyping) => {
-    const typingElement = document.getElementById("typing");
-    typingElement.innerText =
-      usersTyping.length > 0 ? `${usersTyping.join(", ")} is typing...` : "";
-  });
   /*************** Type Detection End***********************/
   console.log({ username, room });
   document.getElementById("roomHeading").innerText = room;
