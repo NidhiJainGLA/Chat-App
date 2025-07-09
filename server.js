@@ -2,14 +2,12 @@ import http from "http";
 import express from "express";
 import { Server } from "socket.io";
 import moment from "moment";
-import { v4 as uuidv4 } from "uuid";
 import {
   userJoin,
   userLeave,
   getRoomUsers,
   checkUserNameExists,
 } from "./utils/users.js";
-
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -19,8 +17,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 3000;
 
-const server = http.createServer(app); // Create HTTP server
-const io = new Server(server); // Create Socket.IO server
+const server = http.createServer(app);//layering 
+const io = new Server(server); //http k top layer pr websocket 
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
@@ -29,7 +27,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/css", express.static(path.join(__dirname, "dist")));
 app.use("/js", express.static(path.join(__dirname, "public/js")));
 
-/* routes */
 app.get("/", (req, res) => res.render("index.ejs"));
 app.get("/chat", (req, res) => res.render("chat.ejs"));
 app.get("*", (req, res) => {
@@ -38,18 +35,6 @@ app.get("*", (req, res) => {
 
 
 const messages = [];
-/*  SOCKET.IO
-  Emit to current user:
-    socket.emit("msg", "Welcome user");
-  Broadcasts to all users except current user
-    socket.broadcast.emit("msg", `${username} has joined the chat`);
-  Broadcasts to all users except current user in a specific room
-     socket.broadcast.to(user.room).emit("system_msg", `${username} joined ${room}`); - Emit to current user
-  Emit to everyone including current user
-    io.emit...
-  Emit to everyone in a room including current user
-    io.to(user.room).emit....
-*/
 io.on("connection", (socket) => {
   socket.on("checkUsername", ({ username }) => {
     socket.emit("usernameCheckResult", checkUserNameExists(username));
@@ -58,17 +43,17 @@ io.on("connection", (socket) => {
   socket.on("join_room", ({ username, room }) => {
     const user = userJoin(socket.id, username, room);
 
-    socket.join(user.room); //create a new room and join
+    socket.join(user.room); //Alpha --> [001,002,005] total --> 001,002,003,004
     console.log("Server: New Connection");
     console.log(user);
 
-    // another user joins
-    socket.broadcast
+
+    socket.broadcast //current user ko chodkr 005 X 001 002
       .to(user.room)
       .emit("system_msg", `${username} joined the chat`);
 
-    // send room info to all users
-    io.to(user.room).emit("room_users", {
+  
+    io.to(user.room).emit("room_users", { 
       room: user.room,
       users: getRoomUsers(room),
     });
@@ -76,11 +61,11 @@ io.on("connection", (socket) => {
     console.log("Users:");
     console.log(getRoomUsers(room));
 
-    // user sends a message
+
     socket.on("chat_message", (msg) => {
       console.log("emit chat message");
       const message = {
-        id: uuidv4(),
+        id: socket.id,
         username: user.username,
         room: user.room,
         text: msg,
@@ -89,13 +74,13 @@ io.on("connection", (socket) => {
       messages.push(message);
       console.log({ messages });
       io.to(user.room).emit("chat_msg", message);
-      //io.to(user.room).emit("chat_msg", formatMessage(user.username, msg));
+      
     });
 
     
-    /* disconnect */
+
     socket.on("disconnect", () => {
-      const user = userLeave(socket.id); // remove user from users list
+      const user = userLeave(socket.id); 
 
       if (user)
         io.to(user.room).emit("system_msg", `${username} left the chat`);

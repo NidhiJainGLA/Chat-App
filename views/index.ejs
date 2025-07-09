@@ -63,7 +63,8 @@
           </div>
         </form>
       </div>
-    </div><script src="/socket.io/socket.io.js"></script>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="/js/darkMode.js"></script>
     <script>
       const socket = io();
@@ -75,7 +76,7 @@
           const username = usernameInput.value; 
           
           if (username) {
-              socket.emit('checkUsername', { username } );
+              socket.emit('checkUsername', { username } );//--> server pr
           } else {
               usernameStatus.textContent = '';
               joinButton.disabled = true;

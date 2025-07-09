@@ -4,55 +4,51 @@ const { username, room } = Qs.parse(location.search, {
 });
 if (!username || !room) {
   console.log("Redirect user to the home page if the parameters are missing");
-  window.location.href = "/"; // Redirect to the homepage if credentials are missing
+  window.location.href = "/"; 
 } else {
-  /*************** Check for Duplicate username ***********************/
+
   socket.emit("checkUsername", { username });
   socket.on("usernameCheckResult", (isTaken) => {
     if (isTaken) {
       console.log("Redirecting to homepage. Username already taken.");
-      window.location.href = "/"; // Redirect to the homepage if username is already taken
+      window.location.href = "/"; 
     }
   });
 
   console.log("Access granted. Username and room are present.");
-  /*************** Type Detection Start***********************/
-  // Typing event handlers
-  /*************** Type Detection End***********************/
+ 
   console.log({ username, room });
   document.getElementById("roomHeading").innerText = room;
 
   socket.emit("join_room", { username, room });
 
-  // debug message from the server
   socket.on("console_msg", (msg) => {
-    console.log(msg); // app
+    console.log(msg); 
   });
 
   socket.on("system_msg", (msg) => {
     console.log(msg);
-    appendSystemMessage(msg); // app
-  });
+    appendSystemMessage(msg);
+  });  
 
-  // messages to be added to chat window
   socket.on("chat_msg", (msg) => {
-    console.log(msg); // append to front end
+    console.log(msg); 
     appendMessage(msg);
   });
 
-  // handle new message submission
-  const newMsgForm = document.getElementById("newMessageForm");
+
+  const newMsgForm = document.getElementById("newMessageForm");//[input,button]
   newMsgForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const msg = e.target.elements[0].value;
 
-    // emit to server
+   
     socket.emit("chat_message", msg);
     document.getElementById("messageInput").value = "";
     document.getElementById("messageInput").focus();
   });
 
-  // add received message to window
+
   function appendMessage(msg) {
     console.log("append msg");
     console.log({ msg });
@@ -69,16 +65,6 @@ if (!username || !room) {
 
     
     messages.insertAdjacentHTML("beforeend", bubble);
-    const autoScrollEnabled =
-      document.getElementById("autoScrollCheckbox").checked;
-
-    if (autoScrollEnabled) messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    document.querySelectorAll(".like-icon").forEach((button) => {
-      button.addEventListener("click", () => {
-        const messageId = button.getAttribute("data-id");
-        socket.emit("like_message", { messageId, username });
-      });
-    });
   }
 
   function appendSystemMessage(msg) {
@@ -87,13 +73,9 @@ if (!username || !room) {
     const systemMsg = `<p class='systemMsg dark:text-zinc-400 text-grey-100 italic text-center my-2 mx-4 text-sm'>${msg}</p>`;
 
     messages.insertAdjacentHTML("beforeend", systemMsg);
-    const autoScrollEnabled =
-      document.getElementById("autoScrollCheckbox").checked;
-
-    if (autoScrollEnabled) messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  /* USER LIST MODAL */
+
 
   socket.on("room_users", ({ room, users }) => {
     console.log(room);
@@ -102,14 +84,14 @@ if (!username || !room) {
   });
 
   
-  // Function to update the user count and user list
+
   function updateUserCountAndList(users) {
     const userCount = users.length;
     console.log("userCount:" + userCount);
     document.getElementById("userCount").textContent = userCount;
 
     const userList = document.getElementById("userList");
-    userList.innerHTML = ""; // Clear existing list
+    userList.innerHTML = ""; 
     users.forEach((user) => {
       const li = document.createElement("li");
       li.textContent = user.username;
