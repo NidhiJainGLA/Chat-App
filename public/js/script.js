@@ -22,10 +22,6 @@ if (!username || !room) {
 
   socket.emit("join_room", { username, room });
 
-  socket.on("console_msg", (msg) => {
-    console.log(msg); 
-  });
-
   socket.on("system_msg", (msg) => {
     console.log(msg);
     appendSystemMessage(msg);
